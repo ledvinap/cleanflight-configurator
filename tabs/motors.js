@@ -302,7 +302,7 @@ TABS.motors.initialize = function (callback) {
             $('div.values li').eq(index).text($(this).val());
 
             for (i = 0; i < 8; i++) {
-                var val = parseInt($('div.sliders input').eq(i).val());
+                var val = $('div.mot_enable input').eq(i).is(':checked') ? parseInt($('div.sliders input').eq(i).val()) : MISC.mincommand;
 
                 buffer.push(lowByte(val));
                 buffer.push(highByte(val));
@@ -329,6 +329,11 @@ TABS.motors.initialize = function (callback) {
             $('div.values li:not(:last)').slice(0, number_of_valid_outputs).text(val);
             $('div.sliders input:not(:last):first').trigger('input');
         });
+		
+		$('div.mot_enable input').change(function () {
+			var index = $(this).index();
+			$('div.sliders input').eq(index).trigger('input');
+		});
 
         $('#motorsEnableTestMode').change(function () {
             if ($(this).is(':checked')) {

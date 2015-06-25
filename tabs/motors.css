@@ -207,6 +207,16 @@
     margin-left: 0px;
 }
 
+.tab-motors .motor_testing .mot_enable input {
+    float: left;
+
+    width: calc((100% / 9) - 10px);
+    margin-left: 10px;
+}
+.tab-motors .motor_testing .mot_enable input:first-child {
+	margin-left: 0px;
+}
+
 .tab-motors .motor_testing .values {
     margin-top: 5px;
 }
