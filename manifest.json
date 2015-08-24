@@ -39,7 +39,11 @@
             {"vendorId": 1155, "productId": 57105}
         ]}
     ],
-
+	"sockets": {
+		"tcp": {
+    		"connect": ""
+    	}	
+	},
     "icons": {
         "128": "images/icon_128.png"
     }
