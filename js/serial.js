@@ -37,7 +37,7 @@ var serial =  {
 		var self = this;
 		self.openRequested = true;
 
-		var ipRegexp = /^((?:\w.)+):(\d+)$/;
+		var ipRegexp = /^((?:\w|.)+):(\d+)$/;
 
 		var addrIP = path.match(ipRegexp);
 		if(addrIP) {
