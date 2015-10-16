@@ -105,6 +105,7 @@ var MSP = {
 
     callbacks:                  [],
     packet_error:               0,
+    unsupported:                0,
 
     ledDirectionLetters:        ['n', 'e', 's', 'w', 'u', 'd'],      // in LSB bit order
     ledFunctionLetters:         ['i', 'w', 'f', 'a', 't', 'r', 'c'], // in LSB bit order
@@ -141,10 +142,14 @@ var MSP = {
                     }
                     break;
                 case 2: // direction (should be >)
+                    this.unsupported = 0;
                     if (data[i] == 62) { // >
                         this.message_direction = 1;
-                    } else { // <
+                    } else if (data[i] == 60) { // <
                         this.message_direction = 0;
+                    } else if (data[i] == 33) { // !
+                        // FC reports unsupported message error
+                        this.unsupported = 1;
                     }
 
                     this.state++;
@@ -205,7 +210,7 @@ var MSP = {
     process_data: function (code, message_buffer, message_length) {
         var data = new DataView(message_buffer, 0); // DataView (allowing us to view arrayBuffer as struct/union)
 
-        switch (code) {
+        if (!this.unsupported) switch (code) {
             case MSP_codes.MSP_IDENT:
                 console.log('Using deprecated msp command: MSP_IDENT');
                 // Deprecated
@@ -461,8 +466,8 @@ var MSP = {
                                 'max':                      data.getInt16(i + 2, 1),
                                 'middle':                   data.getInt16(i + 4, 1),
                                 'rate':                     data.getInt8(i + 6),
-                                'angleAtMin':               data.getUint8(i + 7),
-                                'angleAtMax':               data.getUint8(i + 8),
+                                'angleAtMin':               data.getInt8(i + 7),
+                                'angleAtMax':               data.getInt8(i + 8),
                                 'indexOfChannelToForward':  data.getInt8(i + 9),
                                 'reversedInputSources':     data.getUint32(i + 10)
                             };
@@ -834,6 +839,8 @@ var MSP = {
                 
             default:
                 console.log('Unknown code detected: ' + code);
+        } else {
+            console.log('FC reports unsupported message error: ' + code);
         }
 
         // trigger callbacks, cleanup/remove callback after trigger
@@ -980,43 +987,43 @@ MSP.crunch = function (code) {
                     case 7:
                     case 8:
                     case 9:
-                        buffer.push(parseInt(PIDs[i][0] * 10));
-                        buffer.push(parseInt(PIDs[i][1] * 1000));
+                        buffer.push(Math.round(PIDs[i][0] * 10));
+                        buffer.push(Math.round(PIDs[i][1] * 1000));
                         buffer.push(parseInt(PIDs[i][2]));
                         break;
                     case 4:
-                        buffer.push(parseInt(PIDs[i][0] * 100));
-                        buffer.push(parseInt(PIDs[i][1] * 100));
+                        buffer.push(Math.round(PIDs[i][0] * 100));
+                        buffer.push(Math.round(PIDs[i][1] * 100));
                         buffer.push(parseInt(PIDs[i][2]));
                         break;
                     case 5:
                     case 6:
-                        buffer.push(parseInt(PIDs[i][0] * 10));
-                        buffer.push(parseInt(PIDs[i][1] * 100));
-                        buffer.push(parseInt(PIDs[i][2] * 1000));
+                        buffer.push(Math.round(PIDs[i][0] * 10));
+                        buffer.push(Math.round(PIDs[i][1] * 100));
+                        buffer.push(Math.round(PIDs[i][2] * 1000));
                         break;
                 }
             }
             break;
         case MSP_codes.MSP_SET_RC_TUNING:
-            buffer.push(parseInt(RC_tuning.RC_RATE * 100));
-            buffer.push(parseInt(RC_tuning.RC_EXPO * 100));
+            buffer.push(Math.round(RC_tuning.RC_RATE * 100));
+            buffer.push(Math.round(RC_tuning.RC_EXPO * 100));
             if (semver.lt(CONFIG.apiVersion, "1.7.0")) {
-                buffer.push(parseInt(RC_tuning.roll_pitch_rate * 100));
+                buffer.push(Math.round(RC_tuning.roll_pitch_rate * 100));
             } else {
-                buffer.push(parseInt(RC_tuning.roll_rate * 100));
-                buffer.push(parseInt(RC_tuning.pitch_rate * 100));
+                buffer.push(Math.round(RC_tuning.roll_rate * 100));
+                buffer.push(Math.round(RC_tuning.pitch_rate * 100));
             }
-            buffer.push(parseInt(RC_tuning.yaw_rate * 100));
-            buffer.push(parseInt(RC_tuning.dynamic_THR_PID * 100));
-            buffer.push(parseInt(RC_tuning.throttle_MID * 100));
-            buffer.push(parseInt(RC_tuning.throttle_EXPO * 100));
+            buffer.push(Math.round(RC_tuning.yaw_rate * 100));
+            buffer.push(Math.round(RC_tuning.dynamic_THR_PID * 100));
+            buffer.push(Math.round(RC_tuning.throttle_MID * 100));
+            buffer.push(Math.round(RC_tuning.throttle_EXPO * 100));
             if (semver.gte(CONFIG.apiVersion, "1.7.0")) {
                 buffer.push(lowByte(RC_tuning.dynamic_THR_breakpoint));
                 buffer.push(highByte(RC_tuning.dynamic_THR_breakpoint));
             }
 			if (semver.gte(CONFIG.apiVersion, "1.10.0")) {
-                buffer.push(parseInt(RC_tuning.RC_YAW_EXPO * 100));
+                buffer.push(Math.round(RC_tuning.RC_YAW_EXPO * 100));
             }
             break;
         // Disabled, cleanflight does not use MSP_SET_BOX.
@@ -1064,12 +1071,12 @@ MSP.crunch = function (code) {
             buffer.push(MISC.multiwiicurrentoutput);
             buffer.push(MISC.rssi_channel);
             buffer.push(MISC.placeholder2);
-            buffer.push(lowByte(MISC.mag_declination * 10));
-            buffer.push(highByte(MISC.mag_declination * 10));
+            buffer.push(lowByte(Math.round(MISC.mag_declination * 10)));
+            buffer.push(highByte(Math.round(MISC.mag_declination * 10)));
             buffer.push(MISC.vbatscale);
-            buffer.push(MISC.vbatmincellvoltage * 10);
-            buffer.push(MISC.vbatmaxcellvoltage * 10);
-            buffer.push(MISC.vbatwarningcellvoltage * 10);
+            buffer.push(Math.round(MISC.vbatmincellvoltage * 10));
+            buffer.push(Math.round(MISC.vbatmaxcellvoltage * 10));
+            buffer.push(Math.round(MISC.vbatwarningcellvoltage * 10));
             break;
         case MSP_codes.MSP_SET_CHANNEL_FORWARDING:
             for (var i = 0; i < SERVO_CONFIG.length; i++) {
@@ -1129,6 +1136,22 @@ MSP.crunch = function (code) {
 
     return buffer;
 };
+
+/**
+ * Set raw Rx values over MSP protocol.
+ * 
+ * Channels is an array of 16-bit unsigned integer channel values to be sent. 8 channels is probably the maximum.
+ */
+MSP.setRawRx = function(channels) {
+    var buffer = [];
+    
+    for (var i = 0; i < channels.length; i++) {
+        buffer.push(specificByte(channels[i], 0));
+        buffer.push(specificByte(channels[i], 1));
+    }
+    
+    MSP.send_message(MSP_codes.MSP_SET_RAW_RC, buffer, false);
+}
 
 /**
  * Send a request to read a block of data from the dataflash at the given address and pass that address and a dataview
