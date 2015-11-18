@@ -516,7 +516,7 @@ TABS.firmware_flasher.initialize = function (callback) {
             }
         });
 
-        if (callback) callback();
+        GUI.content_ready(callback);
     });
 };
 
@@ -529,4 +529,3 @@ TABS.firmware_flasher.cleanup = function (callback) {
 
     if (callback) callback();
 };
-
